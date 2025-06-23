@@ -1,104 +1,170 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
+    // Проверяем доступность API Telegram
     if (typeof window.Telegram.WebApp === 'undefined') {
-        console.error("Telegram WebApp API not available.");
-        document.body.innerHTML = `<div style="color: #ffffff; text-align: center; padding: 50px;"><h1>Ошибка</h1><p>Это веб-приложение предназначено для использования внутри Telegram.</p></div>`;
+        document.body.innerHTML = `<div class="error-message"><h1>Ошибка</h1><p>Это веб-приложение предназначено для использования внутри Telegram.</p></div>`;
         return;
     }
 
     const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
-    
-    let cart = [];
 
-    function updateMainButton() {
-        if (cart.length > 0) {
-            let totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            tg.MainButton.setText(`Корзина: ${totalAmount.toLocaleString('ru-RU')} ₽`);
-            tg.MainButton.setParams({
-                text_color: '#0d1b2a',
-                color: '#00d1ff',
-                is_visible: true
-            });
-        } else {
-            tg.MainButton.hide();
-        }
-    }
+    // --- Глобальное Состояние Приложения ---
+    const state = {
+        products: [],
+        cart: [] // Формат: [{ id, name, price, quantity }]
+    };
 
-    // НОВАЯ ФУНКЦИЯ: Показать состав корзины
-    function showCartDetails() {
-        if (cart.length === 0) return;
+    // --- Основной Объект Приложения ---
+    const app = {
+        init() {
+            tg.ready();
+            tg.expand();
 
-        let message = '<b>Ваш заказ:</b>\n\n';
-        let totalAmount = 0;
-        cart.forEach(item => {
-            message += `• ${item.name} (x${item.quantity}) - <b>${(item.price * item.quantity).toLocaleString('ru-RU')} ₽</b>\n`;
-            totalAmount += item.price * item.quantity;
-        });
-        message += `\n<b>Итого: ${totalAmount.toLocaleString('ru-RU')} ₽</b>`;
+            this.loadCart();
+            this.updateMainButton();
+            this.setupEventListeners();
+            
+            this.fetchProducts();
+        },
 
-        tg.showPopup({
-            title: 'Подтверждение заказа',
-            message: message,
-            buttons: [
-                { id: 'checkout', type: 'default', text: 'Оформить заказ' },
-                { id: 'close', type: 'cancel' },
-            ]
-        }, function(buttonId) {
-            if (buttonId === 'checkout') {
-                tg.sendData(JSON.stringify(cart));
-                tg.close();
+        // --- Методы для работы с Корзиной и Хранилищем ---
+        loadCart() {
+            const savedCart = localStorage.getItem('cascada_cart');
+            if (savedCart) {
+                state.cart = JSON.parse(savedCart);
             }
-        });
-    }
+        },
 
-    tg.MainButton.onClick(showCartDetails);
+        saveCart() {
+            localStorage.setItem('cascada_cart', JSON.stringify(state.cart));
+        },
 
-    // НОВАЯ ФУНКЦИЯ: Добавление товара в корзину
-    function addToCart(productId, productName, productPrice) {
-        const existingItem = cart.find(item => item.id === productId);
-        if (existingItem) {
-            existingItem.quantity += 1;
-        } else {
-            cart.push({ id: productId, name: productName, price: productPrice, quantity: 1 });
+        addToCart(productId) {
+            const product = state.products.find(p => p.id === productId);
+            if (!product) return;
+
+            const cartItem = state.cart.find(item => item.id === productId);
+            if (cartItem) {
+                cartItem.quantity++;
+            } else {
+                state.cart.push({ ...product, quantity: 1 });
+            }
+
+            this.saveCart();
+            this.updateMainButton();
+            tg.HapticFeedback.impactOccurred('light');
+        },
+
+        // --- Методы для работы с Данными и Отрисовкой ---
+        async fetchProducts() {
+            try {
+                const response = await fetch('./products.json');
+                if (!response.ok) throw new Error('Network response was not ok');
+                state.products = await response.json();
+                this.renderProducts();
+            } catch (error) {
+                console.error('Failed to fetch products:', error);
+                const grid = document.querySelector('.product-grid');
+                grid.innerHTML = '<div class="loader">Не удалось загрузить товары.</div>';
+            }
+        },
+
+        renderProducts() {
+            const grid = document.querySelector('.product-grid');
+            if (!grid) return;
+            grid.innerHTML = ''; // Очищаем контейнер (включая загрузчик)
+
+            state.products.forEach(product => {
+                const priceFormatted = product.price.toLocaleString('ru-RU');
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.dataset.productId = product.id; // Добавляем data-атрибут для кликов по карточке
+
+                card.innerHTML = `
+                    <div class="product-card-content">
+                        <img src="${product.image}" alt="${product.name}" class="product-image">
+                        <div class="product-info">
+                            <h3 class="product-name">${product.name}</h3>
+                            <p class="product-price">${priceFormatted} ₽</p>
+                        </div>
+                        <button class="add-to-cart-btn">В корзину</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        },
+        
+        // --- Методы для взаимодействия с UI и Telegram API ---
+        setupEventListeners() {
+            const grid = document.querySelector('.product-grid');
+            
+            // Используем делегирование событий
+            grid.addEventListener('click', (event) => {
+                const button = event.target.closest('.add-to-cart-btn');
+                const card = event.target.closest('.product-card');
+
+                if (button) {
+                    event.stopPropagation();
+                    const productId = card.dataset.productId;
+                    this.addToCart(productId);
+                    
+                    // Визуальная обратная связь на кнопке
+                    button.innerText = 'Добавлено!';
+                    button.classList.add('is-added');
+                    setTimeout(() => {
+                        button.innerText = 'В корзину';
+                        button.classList.remove('is-added');
+                    }, 1200);
+
+                } else if (card) {
+                    const productName = card.querySelector('.product-name').innerText;
+                    tg.showAlert(`Детальный просмотр товара: ${productName}. Эта функция будет добавлена позже.`);
+                }
+            });
+
+            tg.MainButton.onClick(() => this.showCartDetails());
+        },
+
+        updateMainButton() {
+            if (state.cart.length > 0) {
+                const totalAmount = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                tg.MainButton.setText(`Корзина: ${totalAmount.toLocaleString('ru-RU')} ₽`);
+                tg.MainButton.setParams({
+                    text_color: '#0d1b2a',
+                    color: '#00d1ff',
+                    is_visible: true
+                });
+            } else {
+                tg.MainButton.hide();
+            }
+        },
+
+        showCartDetails() {
+            if (state.cart.length === 0) return;
+
+            let message = '<b>Ваш заказ:</b>\n\n';
+            state.cart.forEach(item => {
+                message += `• ${item.name} (x${item.quantity}) - <b>${(item.price * item.quantity).toLocaleString('ru-RU')} ₽</b>\n`;
+            });
+
+            tg.showPopup({
+                title: 'Подтверждение заказа',
+                message: message,
+                buttons: [
+                    { id: 'checkout', type: 'default', text: 'Оформить заказ' },
+                    { type: 'cancel' },
+                ]
+            }, (buttonId) => {
+                if (buttonId === 'checkout') {
+                    tg.sendData(JSON.stringify(state.cart));
+                    // Опционально: очистить корзину после отправки
+                    // state.cart = [];
+                    // this.saveCart();
+                    tg.close();
+                }
+            });
         }
-        tg.HapticFeedback.impactOccurred('light');
-        updateMainButton();
-    }
-    
-    // --- Привязка событий ---
-    
-    // Клик по карточкам
-    document.querySelectorAll('.product-card').forEach(card => {
-        card.addEventListener('click', function() {
-            const btn = this.querySelector('.add-to-cart-btn');
-            const productName = btn.dataset.productName;
-            
-            // TODO: Заменить этот алерт на открытие красивого модального окна или новой страницы с деталями товара
-            tg.showAlert(`Вы кликнули на товар: ${productName}. В будущем здесь будет страница с его детальным описанием.`);
-        });
-    });
+    };
 
-    // Клик по кнопкам "В корзину"
-    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
-        button.addEventListener('click', function(event) {
-            event.stopPropagation(); // Предотвращаем срабатывание клика по карточке
-            
-            addToCart(
-                this.dataset.productId,
-                this.dataset.productName,
-                parseFloat(this.dataset.productPrice)
-            );
-            
-            // Улучшенная обратная связь
-            button.innerText = 'Добавлено!';
-            button.classList.add('is-added');
-            setTimeout(() => {
-                button.innerText = 'В корзину';
-                button.classList.remove('is-added');
-            }, 1200);
-        });
-    });
-
-    updateMainButton();
+    // --- Запуск Приложения ---
+    app.init();
 });

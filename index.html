@@ -5,19 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Cascada Tech - Магазин</title>
     
-    <!-- Фавиконки и манифест (ссылаются на файлы в корне) -->
+    <!-- Фавиконки и манифест -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
-    <meta name="theme-color" content="#0d1b2a"> <!-- Цвет для мобильных браузеров -->
+    <meta name="theme-color" content="#0d1b2a">
     
     <!-- Подключение шрифта Inter с Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Подключение стилей из папки assets -->
+    <!-- Подключение стилей -->
     <link rel="stylesheet" href="assets/css/style.css">
     
     <!-- Подключение скрипта Telegram Web App -->
@@ -26,67 +26,20 @@
 <body>
     <div class="app-container">
         <header class="app-header">
-            <!-- ИЗМЕНЕНО: Логотип и название объединены в один блок -->
             <a href="#" class="header-brand" onclick="event.preventDefault(); window.scrollTo(0, 0);">
                 <img src="assets/images/logo.svg" alt="Cascada Tech Logo" class="logo">
                 <span class="brand-name">Cascada Tech</span>
             </a>
         </header>
 
+        <!-- Этот блок теперь пустой и будет заполнен через JavaScript -->
         <main class="product-grid">
-
-            <!-- Карточка товара 1 -->
-            <div class="product-card">
-                <div class="product-card-content">
-                    <img src="assets/images/products/product1.webp" alt="Смартфон Alpha" class="product-image">
-                    <div class="product-info">
-                        <h3 class="product-name">Смартфон Alpha</h3>
-                        <p class="product-price">29 990 ₽</p>
-                    </div>
-                    <button class="add-to-cart-btn" data-product-id="1" data-product-name="Смартфон Alpha" data-product-price="29990">В корзину</button>
-                </div>
-            </div>
-
-            <!-- Карточка товара 2 -->
-            <div class="product-card">
-                <div class="product-card-content">
-                    <img src="assets/images/products/product2.webp" alt="Ноутбук Omega" class="product-image">
-                    <div class="product-info">
-                        <h3 class="product-name">Ноутбук Omega</h3>
-                        <p class="product-price">75 500 ₽</p>
-                    </div>
-                    <button class="add-to-cart-btn" data-product-id="2" data-product-name="Ноутбук Omega" data-product-price="75500">В корзину</button>
-                </div>
-            </div>
-
-            <!-- Карточка товара 3 -->
-            <div class="product-card">
-                <div class="product-card-content">
-                    <img src="assets/images/products/product3.webp" alt="Наушники Zeta" class="product-image">
-                    <div class="product-info">
-                        <h3 class="product-name">Наушники Zeta</h3>
-                        <p class="product-price">9 800 ₽</p>
-                    </div>
-                    <button class="add-to-cart-btn" data-product-id="3" data-product-name="Наушники Zeta" data-product-price="9800">В корзину</button>
-                </div>
-            </div>
-            
-            <!-- Карточка товара 4 -->
-            <div class="product-card">
-                <div class="product-card-content">
-                    <img src="assets/images/products/product4.webp" alt="Смартфон Beta" class="product-image">
-                    <div class="product-info">
-                        <h3 class="product-name">Смартфон Beta</h3>
-                        <p class="product-price">34 990 ₽</p>
-                    </div>
-                    <button class="add-to-cart-btn" data-product-id="4" data-product-name="Смартфон Beta" data-product-price="34990">В корзину</button>
-                </div>
-            </div>
-
+            <!-- Простой индикатор загрузки, который будет виден при старте -->
+            <div class="loader">Загрузка товаров...</div>
         </main>
     </div>
 
-    <!-- Подключение скрипта из папки assets -->
+    <!-- Подключение основного скрипта приложения -->
     <script src="assets/js/script.js"></script>
 </body>
 </html>

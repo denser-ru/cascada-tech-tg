@@ -1,0 +1,26 @@
+[
+    {
+        "id": "1",
+        "name": "Смартфон Alpha",
+        "price": 29990,
+        "image": "assets/images/products/product1.webp"
+    },
+    {
+        "id": "2",
+        "name": "Ноутбук Omega",
+        "price": 75500,
+        "image": "assets/images/products/product2.webp"
+    },
+    {
+        "id": "3",
+        "name": "Наушники Zeta",
+        "price": 9800,
+        "image": "assets/images/products/product3.webp"
+    },
+    {
+        "id": "4",
+        "name": "Смартфон Beta",
+        "price": 34990,
+        "image": "assets/images/products/product4.webp"
+    }
+]

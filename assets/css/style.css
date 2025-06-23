@@ -179,3 +179,12 @@ body::before {
 .add-to-cart-btn.is-added {
     background: var(--primary-accent-dark);
 }
+
+/* Стиль для индикатора загрузки */
+.loader {
+    grid-column: 1 / -1; /* Растягиваем на всю ширину сетки */
+    text-align: center;
+    padding: 50px 0;
+    font-size: 1.2em;
+    color: var(--primary-accent);
+}
