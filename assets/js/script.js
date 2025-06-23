@@ -1,51 +1,23 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Проверяем, доступен ли объект Telegram Web App
     if (typeof window.Telegram.WebApp === 'undefined') {
         console.error("Telegram WebApp API not available.");
-        // Можно скрыть страницу и показать сообщение
-        document.body.innerHTML = `
-            <div style="color: #ffffff; text-align: center; padding-top: 50px;">
-                <h1>Ошибка</h1>
-                <p>Это веб-приложение предназначено для использования внутри Telegram.</p>
-            </div>
-        `;
-        return; // Прекращаем выполнение скрипта
+        document.body.innerHTML = `<div style="color: #ffffff; text-align: center; padding: 50px;"><h1>Ошибка</h1><p>Это веб-приложение предназначено для использования внутри Telegram.</p></div>`;
+        return;
     }
 
     const tg = window.Telegram.WebApp;
-
-    // 1. Инициализация Telegram Web App
     tg.ready();
     tg.expand();
     
-    // 2. Адаптация темы - ЗАКОММЕНТИРОВАНА
-    // Мы используем свой собственный брендированный темный стиль,
-    // поэтому адаптация под светлую/темную тему Telegram нам не нужна.
-    /*
-    if (tg.themeParams) {
-        document.documentElement.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
-        document.documentElement.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
-        document.documentElement.style.setProperty('--tg-theme-hint-color', tg.themeParams.hint_color);
-        document.documentElement.style.setProperty('--tg-theme-link-color', tg.themeParams.link_color);
-        document.documentElement.style.setProperty('--tg-theme-button-color', tg.themeParams.button_color);
-        document.documentElement.style.setProperty('--tg-theme-button-text-color', tg.themeParams.button_text_color);
-        document.documentElement.style.setProperty('--tg-theme-secondary-bg-color', tg.themeParams.secondary_bg_color);
-    }
-    */
-    
-    // 3. Настройка MainButton (Главная кнопка Telegram)
-    let cart = []; // Наша импровизированная корзина
+    let cart = [];
 
     function updateMainButton() {
         if (cart.length > 0) {
             let totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
-            // Настраиваем кнопку
             tg.MainButton.setText(`Корзина: ${totalAmount.toLocaleString('ru-RU')} ₽`);
-            // Задаем цвета для кнопки, чтобы она соответствовала нашему стилю
             tg.MainButton.setParams({
-                text_color: '#0d1b2a', // Темный текст, как на наших кнопках
-                color: '#00d1ff',      // Ярко-голубой цвет
+                text_color: '#0d1b2a',
+                color: '#00d1ff',
                 is_visible: true
             });
         } else {
@@ -53,56 +25,80 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Назначаем действие на главную кнопку
-    tg.MainButton.onClick(function() {
-        if (cart.length > 0) {
-            // В реальном приложении здесь будет tg.sendData(JSON.stringify(cart));
-            tg.showConfirm(
-                `Вы уверены, что хотите оформить заказ на сумму ${tg.MainButton.text.split(': ')[1]}?`, 
-                function(isConfirmed) {
-                    if (isConfirmed) {
-                        // Отправляем данные боту
-                        tg.sendData(JSON.stringify(cart));
-                        // Закрываем приложение после отправки
-                        tg.close();
-                    }
-                }
-            );
-        }
-    });
+    // НОВАЯ ФУНКЦИЯ: Показать состав корзины
+    function showCartDetails() {
+        if (cart.length === 0) return;
 
-    // 4. Обработка кликов по кнопкам "В корзину"
-    const addToCartButtons = document.querySelectorAll('.add-to-cart-btn');
-    addToCartButtons.forEach(button => {
-        button.addEventListener('click', function(event) {
-            event.stopPropagation(); // Останавливаем всплытие события, если карточка тоже кликабельна
-            
-            const productId = this.dataset.productId;
-            const productName = this.dataset.productName;
-            const productPrice = parseFloat(this.dataset.productPrice);
+        let message = '<b>Ваш заказ:</b>\n\n';
+        let totalAmount = 0;
+        cart.forEach(item => {
+            message += `• ${item.name} (x${item.quantity}) - <b>${(item.price * item.quantity).toLocaleString('ru-RU')} ₽</b>\n`;
+            totalAmount += item.price * item.quantity;
+        });
+        message += `\n<b>Итого: ${totalAmount.toLocaleString('ru-RU')} ₽</b>`;
 
-            const existingItem = cart.find(item => item.id === productId);
-            if (existingItem) {
-                existingItem.quantity += 1;
-            } else {
-                cart.push({ id: productId, name: productName, price: productPrice, quantity: 1 });
+        tg.showPopup({
+            title: 'Подтверждение заказа',
+            message: message,
+            buttons: [
+                { id: 'checkout', type: 'default', text: 'Оформить заказ' },
+                { id: 'close', type: 'cancel' },
+            ]
+        }, function(buttonId) {
+            if (buttonId === 'checkout') {
+                tg.sendData(JSON.stringify(cart));
+                tg.close();
             }
+        });
+    }
+
+    tg.MainButton.onClick(showCartDetails);
+
+    // НОВАЯ ФУНКЦИЯ: Добавление товара в корзину
+    function addToCart(productId, productName, productPrice) {
+        const existingItem = cart.find(item => item.id === productId);
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            cart.push({ id: productId, name: productName, price: productPrice, quantity: 1 });
+        }
+        tg.HapticFeedback.impactOccurred('light');
+        updateMainButton();
+    }
+    
+    // --- Привязка событий ---
+    
+    // Клик по карточкам
+    document.querySelectorAll('.product-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const btn = this.querySelector('.add-to-cart-btn');
+            const productName = btn.dataset.productName;
             
-            // Тактильный отклик
-            tg.HapticFeedback.impactOccurred('light');
-
-            // Меняем текст на кнопке для обратной связи
-            this.innerText = 'Добавлено!';
-            this.style.backgroundColor = '#0b8aab'; // Немного темнее, чтобы показать, что товар уже в корзине
-            setTimeout(() => {
-                this.innerText = 'В корзину';
-                this.style.backgroundColor = '#00d1ff'; // Возвращаем исходный цвет
-            }, 1000); // Через 1 секунду
-
-            updateMainButton();
+            // TODO: Заменить этот алерт на открытие красивого модального окна или новой страницы с деталями товара
+            tg.showAlert(`Вы кликнули на товар: ${productName}. В будущем здесь будет страница с его детальным описанием.`);
         });
     });
 
-    // Первоначальный вызов для настройки кнопки при загрузке
+    // Клик по кнопкам "В корзину"
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.stopPropagation(); // Предотвращаем срабатывание клика по карточке
+            
+            addToCart(
+                this.dataset.productId,
+                this.dataset.productName,
+                parseFloat(this.dataset.productPrice)
+            );
+            
+            // Улучшенная обратная связь
+            button.innerText = 'Добавлено!';
+            button.classList.add('is-added');
+            setTimeout(() => {
+                button.innerText = 'В корзину';
+                button.classList.remove('is-added');
+            }, 1200);
+        });
+    });
+
     updateMainButton();
 });

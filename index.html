@@ -26,8 +26,11 @@
 <body>
     <div class="app-container">
         <header class="app-header">
-            <!-- Путь к логотипу в папке assets -->
-            <img src="assets/images/logo.svg" alt="Cascada Tech Logo" class="logo">
+            <!-- ИЗМЕНЕНО: Логотип и название объединены в один блок -->
+            <a href="#" class="header-brand" onclick="event.preventDefault(); window.scrollTo(0, 0);">
+                <img src="assets/images/logo.svg" alt="Cascada Tech Logo" class="logo">
+                <span class="brand-name">Cascada Tech</span>
+            </a>
         </header>
 
         <main class="product-grid">
